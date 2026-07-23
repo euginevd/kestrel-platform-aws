@@ -1,0 +1,10 @@
+# Adopted, not vended: bootstrap/account/ created this account by hand on
+# throwaway local state (the chicken-and-egg the backend resolved). The
+# factory adopted it via `import`, never rebuilt — it keeps its identity
+# while the code that owns it changes hands.
+name:        kestrel-shared-services
+ou:          Infrastructure
+owner:       platform-team@kestrel.com.au
+purpose:     IPAM, golden images, internal tooling, state backend
+request_ref: SNOW-REQ-003977
+# no network tier — its VPC needs predate the factory and live in its own repo

@@ -1,0 +1,48 @@
+# The control-to-evidence matrix — Assessment decisions 1–2.
+#
+# One row per applicable control on a pinned ISM release: the claim in
+# one sentence, and an evidence path that RESOLVES under
+# s3://kestrel-log-archive/irap/phase-<n>/ — or a gap with owner and
+# expiry, never a blank. The matrix never contains evidence; it contains
+# references, so the Object-Locked bucket stays the single source and
+# the matrix stays cheap to diff. CI reconciles it: unresolvable path,
+# unowned gap, or a missing control in the pinned release fails the PR.
+
+# --- The header is the scope -------------------------------------------------
+ism_release: 2026.06         # pinned — reconciliation is against THIS
+posture:     PROTECTED, cloud consumer
+inherited:   aws-irap-2026   # controls evidenced by AWS's own report, listed by ref
+
+# --- Rows (excerpt — one per applicable control in the full matrix) ----------
+controls:
+  ISM-1988:
+    claim:    event logs searchable for 12 months
+    evidence: irap/phase-03/athena-query-battery.json
+
+  ISM-0859:
+    claim:    event logs retained 7 years
+    evidence: irap/phase-03/log-retention-lifecycle.json # primary; re-run tests both Regions (FIND-012)
+
+  ISM-0988:
+    claim:    a common time source across the estate
+    evidence: irap/phase-03/time-sync-attestation.json
+
+  ISM-1526:
+    claim:    changes to the estate travel a reviewed, gated pipeline
+    evidence: irap/phase-02/pipeline-end-to-end-run.json
+
+  ISM-1175:
+    claim:    privileged access is requested, approved, time-bound and logged
+    evidence: irap/phase-06/elevation-lifecycle-battery.json
+
+  ISM-1507:
+    claim:    privileged users use separate privileged accounts # JIT elevation, not standing
+    evidence: irap/phase-06/standing-privilege-enumeration.json
+
+  ISM-0580:
+    claim:    event logging is centralised and protected from modification
+    evidence: irap/phase-03/object-lock-and-bucket-policy-tests.json
+
+  ISM-1553:
+    claim:    application control enforced on managed endpoints
+    gap:      { owner: platform-team, expiry: 2026-12-01, ref: FIND-019 }

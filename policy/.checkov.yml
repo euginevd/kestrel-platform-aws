@@ -1,0 +1,64 @@
+# Checkov configuration — the policy gate the checks workflow runs.
+#
+# The maintained security baseline plus Kestrel's own checks. Custom
+# checks live in policy/checks/; CKV_KES_1 (the four standard tags) is
+# the review-time stand-in until the tag policy lands with Guardrails.
+
+directory:
+  - .
+
+framework:
+  - terraform
+
+external-checks-dir:
+  - policy/checks
+
+skip-path:
+  - .git
+  - docs
+
+# Every skip is documented HERE, by ID, with its reason — never an inline
+# #checkov:skip comment that hides from review. A skip without a reason
+# is a finding.
+skip-check:
+  # The platform repo's deploy role (KestrelDeploy) and PlatformAdmin
+  # permission set are AdministratorAccess BY DESIGN — the repo manages
+  # the organisation itself. Containment is the OIDC trust policy, the
+  # production-environment gate and CloudTrail attribution (Bootstrap
+  # step 10; Identity decision 1).
+  - CKV_AWS_274
+  # KMS key policies carry the standard account-root administration
+  # statement; inside a KEY policy, Resource "*" scopes to the key
+  # itself — not a wildcard grant.
+  - CKV_AWS_356
+  - CKV_AWS_111
+  - CKV_AWS_109
+  # S3 server access logging: the estate's evidence chain is the org
+  # trail's S3 data events plus bucket policies — a second, recursive
+  # access-log bucket per bucket adds a copy that drifts (Accounts
+  # decision 2). Revisit if an ISM control names server access logs.
+  - CKV_AWS_18
+  # S3 event notifications: no consumer exists; findings routing is
+  # deliberately deferred to the Response part (Accounts decision 3).
+  - CKV2_AWS_62
+  # VPC flow logs: per-path evidence ships with Networking step 9's
+  # evidence movement (flow/firewall/DNS logs to log-archive), governed
+  # by Firewall Manager — not per-VPC resources in each leaf.
+  - CKV2_AWS_11
+  # Network Firewall logging configuration: same evidence movement as
+  # above — the alert/flow log destinations land with step 9.
+  - CKV2_AWS_63
+  # CloudTrail → SNS: findings routing waits for real finding volume to
+  # tune against (Response part's obligation, Accounts decision 3).
+  - CKV_AWS_252
+  # CloudTrail → CloudWatch Logs: Athena over the org-trail bucket is
+  # the query layer — CloudWatch Logs would duplicate ingest for logs
+  # already stored immutably (Accounts decision 2).
+  - CKV2_AWS_10
+  # Cross-Region replication is deliberate per bucket: state and the log
+  # sink replicate to Melbourne; Athena query RESULTS are 90-day working
+  # copies, never evidence — replicating them buys nothing.
+  - CKV_AWS_144
+
+quiet: true
+compact: true

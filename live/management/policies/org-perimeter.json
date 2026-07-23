@@ -1,0 +1,50 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyNonOrgPrincipals",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:*",
+        "sts:AssumeRole",
+        "kms:*",
+        "secretsmanager:*",
+        "sqs:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEqualsIfExists": {
+          "aws:PrincipalOrgID": "o-kestrel00id"
+        },
+        "BoolIfExists": {
+          "aws:PrincipalIsAWSService": "false"
+        }
+      }
+    },
+    {
+      "Sid": "DenyConfusedDeputy",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:*",
+        "sts:AssumeRole",
+        "kms:*",
+        "secretsmanager:*",
+        "sqs:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEqualsIfExists": {
+          "aws:SourceOrgID": "o-kestrel00id"
+        },
+        "Null": {
+          "aws:SourceAccount": "false"
+        },
+        "Bool": {
+          "aws:PrincipalIsAWSService": "true"
+        }
+      }
+    }
+  ]
+}

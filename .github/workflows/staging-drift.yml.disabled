@@ -1,0 +1,83 @@
+# The drift job — Bootstrap step 14, deepened by Identity step 4.
+#
+# A nightly read-only plan against every leaf using the PR (plan) role; a
+# non-empty plan means something changed outside the pipeline. It NEVER
+# applies — an auto-remediating drift job reverts an emergency
+# break-glass fix at 04:00 and turns one incident into two.
+#
+# -detailed-exitcode: exit 2 opens an issue, exit 1 is a broken check
+# alerted separately — or a job that errors looks like one that found
+# nothing. The drift check is what makes "no console path survives" a
+# FACT rather than a policy: a console-created assignment surfaces as a
+# plan diff and is triaged into a PR (written back, or removed as
+# unauthorised).
+
+name: drift
+
+on:
+  schedule:
+    - cron: "0 16 * * *" # 02:00 AEST nightly
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write # federate as the PLAN role only — this workflow can never write to AWS
+  issues: write   # exit 2 opens the issue naming the leaf
+
+env:
+  TERRAFORM_VERSION: "1.10.5"
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      leaves: ${{ steps.list.outputs.leaves }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: list
+        run: |
+          leaves=$(find live -name versions.tf -not -path '*/.terraform/*' | xargs -rn1 dirname | sort -u | jq -Rnc '[inputs]')
+          echo "leaves=${leaves}" >> "$GITHUB_OUTPUT"
+
+  plan:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        leaf: ${{ fromJSON(needs.discover.outputs.leaves) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Federate into the leaf's account (read-only)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # accounts.json routes the leaf to its account; KestrelPlan is
+          # assumable from this repo only, and can only read.
+          role-to-assume: arn:aws:iam::${{ vars.ACCOUNT_ID }}:role/KestrelPlan
+          aws-region: ap-southeast-2
+      - name: Plan, read-only
+        id: plan
+        continue-on-error: true
+        run: |
+          terraform -chdir="${{ matrix.leaf }}" init -lockfile=readonly -input=false
+          terraform -chdir="${{ matrix.leaf }}" plan -detailed-exitcode -input=false
+      - name: Open an issue on drift (exit 2) — never on error (exit 1)
+        if: steps.plan.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `drift: ${{ matrix.leaf }} changed outside the pipeline`,
+              body: 'Nightly read-only plan returned a non-empty diff. Triage into a PR: write the change back, or remove it as unauthorised. Run: ' + context.runId,
+              labels: ['drift'],
+            })
+      - name: A broken check must not look like a clean one
+        if: steps.plan.outputs.exitcode == '1'
+        run: |
+          echo "::error::plan errored in ${{ matrix.leaf }} — alert separately, do not treat as no-drift"
+          exit 1

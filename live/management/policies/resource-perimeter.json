@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyResourcesOutsideOrg",
+      "Effect": "Deny",
+      "Action": [
+        "s3:*",
+        "kms:*",
+        "sqs:*",
+        "secretsmanager:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEqualsIfExists": {
+          "aws:ResourceOrgID": "o-kestrel00id"
+        },
+        "ArnNotLike": {
+          "aws:PrincipalArn": [
+            "arn:aws:iam::*:role/aws-service-role/*"
+          ]
+        }
+      }
+    }
+  ]
+}

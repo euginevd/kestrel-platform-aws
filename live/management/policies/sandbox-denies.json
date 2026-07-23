@@ -1,0 +1,51 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "NoExpensiveInstanceFamilies",
+      "Effect": "Deny",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "ec2:InstanceType": [
+            "p5.*",
+            "p4*.*",
+            "trn*.*",
+            "u-*",
+            "x2*.*",
+            "hpc*.*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "NothingProductionAdjacent",
+      "Effect": "Deny",
+      "Action": [
+        "organizations:*",
+        "sso:*",
+        "sso-directory:*",
+        "identitystore:*",
+        "account:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    },
+    {
+      "Sid": "NoProdData",
+      "Effect": "Deny",
+      "Action": "s3:*",
+      "Resource": [
+        "arn:aws:s3:::kestrel-platform-prod-*",
+        "arn:aws:s3:::kestrel-platform-prod-*/*",
+        "arn:aws:s3:::kestrel-tenant-*",
+        "arn:aws:s3:::kestrel-tenant-*/*"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+# The unprivileged checks — Bootstrap step 4.
+#
+# One workflow, credential-free: fmt, validate, Checkov against policy/,
+# gitleaks. It evaluates a fork's PR too, so it holds nothing worth
+# stealing. Deliberately no id-token permission — this workflow never
+# touches AWS; the plan/apply workflow is a separate, gated thing.
+#
+# A status check binds only once it is NAMED IN THE RULESET — a workflow
+# that runs and fails but was never added as a required check blocks
+# nothing. Add each job name below to the ruleset's required checks.
+#
+# Actions are pinned to major tags here for readability; a production
+# estate pins by commit SHA, for the same reason the OIDC trust pins
+# immutable owner/repo IDs.
+
+name: checks
+
+on: pull_request
+
+permissions: { contents: read }      # deliberately no id-token — never touches AWS
+
+env:
+  TERRAFORM_VERSION: "1.10.5"        # matches the versions.tf floor in every leaf
+
+jobs:
+  fmt:
+    name: terraform fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: fmt -check, whole repo
+        run: terraform fmt -check -recursive -diff
+
+  validate:
+    name: terraform validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: init -backend=false + validate, every root config
+        # A root config is any directory holding a versions.tf — one per
+        # bootstrap/ and per live/ leaf. -backend=false because this job
+        # holds no credentials and needs none to type-check the config;
+        # -lockfile=readonly is the committed-lockfile contract: a drifted
+        # provider build fails here, not on someone's laptop.
+        run: |
+          set -euo pipefail
+          leaves=$(find bootstrap live -name versions.tf -not -path '*/.terraform/*' 2>/dev/null | xargs -rn1 dirname | sort -u)
+          if [ -z "$leaves" ]; then
+            echo "no root configs yet — nothing to validate"
+            exit 0
+          fi
+          for dir in $leaves; do
+            echo "::group::${dir}"
+            terraform -chdir="$dir" init -backend=false -lockfile=readonly -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+
+  checkov:
+    name: checkov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: install checkov
+        run: pip install --quiet checkov
+      - name: security baseline + custom Kestrel checks
+        # policy/.checkov.yml carries the config; policy/checks/ carries the
+        # custom checks (CKV_KES_1 enforces the four standard tags in review
+        # until the deny-untagged SCP lands with the preventative set).
+        run: checkov -d . --config-file policy/.checkov.yml
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0             # scan the PR's full history, not one squash
+      - name: scan for secrets
+        # Run the binary directly — no token, no licence dependency, and the
+        # job stays credential-free like everything else in this workflow.
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION="8.21.2"
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --no-banner --redact --verbose

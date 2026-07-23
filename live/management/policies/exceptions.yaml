@@ -1,0 +1,27 @@
+# The exception register — Guardrails decision 5.
+#
+# An exception is a NARROWED DENY, never a bypass: each carries owner,
+# reason, compensating control and expiry, on the same Terraform-read
+# register that defines attachments — so an exception can't exist
+# off-registry, and one that outlives its expiry becomes a finding.
+# exceptions.tf reconciles this file; the battery asserts zero
+# unexplained, zero expired.
+
+exceptions:
+  - id: EXC-001
+    scope: "Workloads/Exceptions/kestrel-tenant-heritage"
+    control: region-deny
+    narrowed_to: "cloudfront certificate + web ACL management in us-east-1"
+    reason: "CloudFront certificates and web ACLs live in us-east-1 by AWS design (Networking decision 3)."
+    owner: platform-team@kestrel.com.au
+    compensating_control: "ACM and WAF actions only; data residency unaffected — TLS terminates at the edge, data at rest stays in Australian Regions."
+    expiry: 2027-06-30
+
+  - id: EXC-002
+    scope: "identity: SCIM provisioning token (GitHub Enterprise)"
+    control: no-standing-credentials
+    narrowed_to: "one PAT scoped to admin:org, held by the provisioning automation"
+    reason: "A PAT lifetime policy that expires its own SCIM credential is a self-inflicted outage (Identity decision 6)."
+    owner: security-team@kestrel.com.au
+    compensating_control: "Scoped to admin:org, visible in the audit log, rotation calendared 90 days before expiry."
+    expiry: 2027-07-01

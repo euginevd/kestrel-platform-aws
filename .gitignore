@@ -42,3 +42,20 @@ terraform.rc
 # Optional: ignore plan files saved before destroying Terraform configuration
 # Uncomment the line below if you want to ignore planout files.
 # planout
+# --- Kestrel additions -------------------------------------------------------
+
+# The dependency lock file is committed ON PURPOSE — the pipeline verifies it
+# with `terraform init -lockfile=readonly`, so a reproducible provider build
+# depends on it being in the repo. Never ignore it.
+!.terraform.lock.hcl
+
+# Bootstrap's throwaway local state is deleted after `init -migrate-state`,
+# not merely ignored — an ignored state file is a stale copy of the estate's
+# most sensitive object hiding on a laptop. `*.tfstate` above is the backstop.
+
+# Terraform plan output — never committed; the pipeline evaluates plans in-run.
+*.tfplan
+tfplan
+
+# Local evidence staging before export to log-archive.
+evidence/

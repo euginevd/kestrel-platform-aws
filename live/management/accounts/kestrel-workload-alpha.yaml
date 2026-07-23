@@ -1,0 +1,9 @@
+# One declared entry — everything else is derived. The email is NOT in
+# the schema on purpose: it derives from the Organisation root+<name>@
+# scheme, and the module refuses a name that has ever been used.
+name:        kestrel-workload-alpha
+ou:          Workloads/Non-Prod
+owner:       platform-team@kestrel.com.au
+purpose:     Alpha workload environment
+request_ref: SNOW-REQ-004312
+network:     small # optional — omit for no VPC

@@ -1,0 +1,11 @@
+# Last matching pattern wins.
+#
+# The file decides WHO reviews; the repository ruleset makes that review
+# blocking. /.github/workflows/ must be security-owned, or anyone who can
+# open a PR can edit the workflow that gates their own PR — the gates
+# become self-modifying.
+
+*                       @kestrel/platform-team
+/policy/                @kestrel/platform-team @kestrel/security-team
+/live/management/       @kestrel/platform-team @kestrel/security-team
+/.github/workflows/     @kestrel/platform-team @kestrel/security-team  # or CI becomes the bypass

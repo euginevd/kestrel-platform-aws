@@ -1,0 +1,110 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EvidenceMachineryStaysOn",
+      "Effect": "Deny",
+      "Action": [
+        "cloudtrail:DeleteTrail",
+        "cloudtrail:PutEventSelectors",
+        "cloudtrail:StopLogging",
+        "cloudtrail:UpdateTrail",
+        "config:DeleteConfigurationRecorder",
+        "config:DeleteDeliveryChannel",
+        "config:DeleteConfigurationAggregator",
+        "config:StopConfigurationRecorder",
+        "guardduty:DeleteDetector",
+        "guardduty:DisassociateFromMasterAccount",
+        "guardduty:DisassociateMembers",
+        "guardduty:UpdateDetector",
+        "securityhub:DeleteMembers",
+        "securityhub:DisableSecurityHub",
+        "securityhub:DisassociateFromMasterAccount",
+        "securityhub:DisassociateMembers",
+        "access-analyzer:DeleteAnalyzer"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    },
+    {
+      "Sid": "TheLogArchiveIsAppendOnlyToEveryone",
+      "Effect": "Deny",
+      "Action": [
+        "s3:DeleteBucket",
+        "s3:DeleteBucketPolicy",
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketVersioning",
+        "s3:PutBucketObjectLockConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:PutObjectRetention",
+        "s3:BypassGovernanceRetention"
+      ],
+      "Resource": [
+        "arn:aws:s3:::kestrel-org-cloudtrail-*",
+        "arn:aws:s3:::kestrel-org-cloudtrail-*/*"
+      ],
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    },
+    {
+      "Sid": "TheIdentityCIAuthenticatesWithIsNotEditable",
+      "Effect": "Deny",
+      "Action": [
+        "iam:AddClientIDToOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:RemoveClientIDFromOpenIDConnectProvider",
+        "iam:UpdateOpenIDConnectProviderThumbprint"
+      ],
+      "Resource": "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    },
+    {
+      "Sid": "ReserveTheDeploymentRoleName",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateRole",
+        "iam:UpdateAssumeRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/KestrelDeploy",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    },
+    {
+      "Sid": "AddressesComeFromTheNetworkAccountOnly",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:DeleteIpam",
+        "ec2:DeleteIpamPool",
+        "ec2:DeleteIpamScope",
+        "ec2:DeprovisionIpamPoolCidr",
+        "ec2:ModifyIpam",
+        "ec2:ModifyIpamPool",
+        "ec2:ModifyIpamResourceCidr",
+        "ec2:ModifyIpamScope",
+        "ec2:ReleaseIpamPoolAllocation"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::*:role/KestrelDeploy"
+        }
+      }
+    }
+  ]
+}
