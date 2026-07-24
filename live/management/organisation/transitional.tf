@@ -1,6 +1,6 @@
 # Accounts step 10 — adopt, never create.
 #
-# The ~20 brownfield accounts enrol LAST, into a transit OU carrying no
+# The ~60 brownfield accounts enrol LAST, into a transit OU carrying no
 # policy — watched but not governed, covered by the trail and detective
 # services the moment they join. Invitation and acceptance run from inside
 # each account (the one step the pipeline cannot fully drive); this file
@@ -16,7 +16,7 @@ locals {
     "523456789012" = { name = "kestrel-legacy-crm", root_email = "aws-crm@kestrel.com.au" }
     "623456789012" = { name = "kestrel-legacy-data", root_email = "cloud-admin@kestrel.com.au" }
     "723456789012" = { name = "kestrel-legacy-web", root_email = "webops@kestrel.com.au" }
-    # … the rest of the ~20, by account ID
+    # … the rest of the ~60, by account ID
   }
 }
 

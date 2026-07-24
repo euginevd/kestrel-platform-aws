@@ -7,7 +7,7 @@
 # both.
 #
 # The same directory is the estate's inventory: every account the estate
-# has gets an entry — the core four, shared-services, the brownfield ~20
+# has gets an entry — the core four, shared-services, the brownfield ~60
 # — so `list-accounts` and this directory reconcile one to one, with no
 # entry-less accounts and no account-less entries.
 
