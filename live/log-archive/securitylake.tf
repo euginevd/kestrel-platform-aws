@@ -129,10 +129,57 @@ resource "aws_iam_role_policy_attachment" "security_lake" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonSecurityLakeMetastoreManager"
 }
 
+# The subscriber grants S3 access to the OCSF Parquet; the KEY policy is
+# what makes it readable. Without this the SOC's Sentinel sees objects it
+# is authorised for and cannot decrypt any of them.
+data "aws_iam_policy_document" "security_lake_key" {
+  statement {
+    sid       = "AccountAdministration"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.this.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "LakeServiceUse"
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["securitylake.amazonaws.com"]
+    }
+  }
+
+  # Read only — the provider decrypts the record, never re-encrypts it.
+  statement {
+    sid       = "SocSubscriberDecrypt"
+    actions   = ["kms:Decrypt", "kms:DescribeKey"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.soc_account_id}:root"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "sts:ExternalId"
+      values   = [local.soc_external_id]
+    }
+  }
+}
+
 resource "aws_kms_key" "security_lake" {
   description             = "SSE-KMS for the Security Lake OCSF store"
   enable_key_rotation     = true
   deletion_window_in_days = 30
+
+  policy = data.aws_iam_policy_document.security_lake_key.json
 
   tags = local.standard_tags
 }

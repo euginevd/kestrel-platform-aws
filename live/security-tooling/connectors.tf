@@ -97,10 +97,61 @@ resource "aws_sqs_queue_policy" "connector" {
   policy    = data.aws_iam_policy_document.connector_queue[each.key].json
 }
 
+# An SSE-KMS queue is only reachable by principals the KEY POLICY admits,
+# not just the queue policy — the default key policy is account-root only,
+# which would leave S3 unable to encrypt the notification and the SOC
+# unable to decrypt the message it is granted ReceiveMessage on. Both
+# failures are silent: the queue simply stays empty, or reads fail after
+# delivery looked fine.
+data "aws_iam_policy_document" "connectors_key" {
+  statement {
+    sid       = "AccountAdministration"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.this.account_id}:root"]
+    }
+  }
+
+  # S3 in log-archive encrypts the notification it sends.
+  statement {
+    sid       = "ArchiveNotificationEncrypt"
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.log_archive_account_id]
+    }
+  }
+
+  # The SOC decrypts what it polls — read only, never re-encrypt.
+  statement {
+    sid       = "SocDecrypt"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.soc_account_id}:root"]
+    }
+  }
+}
+
 resource "aws_kms_key" "connectors" {
   description             = "SSE-KMS for the Sentinel connector queues"
   enable_key_rotation     = true
   deletion_window_in_days = 30
+
+  policy = data.aws_iam_policy_document.connectors_key.json
 
   tags = local.standard_tags
 }

@@ -124,10 +124,43 @@ resource "aws_sns_topic_policy" "page" {
   policy = data.aws_iam_policy_document.sns_page.json
 }
 
+# The topic is SSE-KMS, so the services that publish to it must be
+# admitted by the KEY policy as well as the topic policy — otherwise the
+# page is dropped at encryption time, which is the worst place to lose an
+# alert.
+data "aws_iam_policy_document" "findings_key" {
+  statement {
+    sid       = "AccountAdministration"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.this.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "PublisherEncrypt"
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+    resources = ["*"]
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "events.amazonaws.com",     # EventBridge — findings and tamper rules
+        "cloudwatch.amazonaws.com", # the silence and delivery alarms
+      ]
+    }
+  }
+}
+
 resource "aws_kms_key" "findings" {
   description             = "SSE-KMS for the finding notification path"
   enable_key_rotation     = true
   deletion_window_in_days = 30
+
+  policy = data.aws_iam_policy_document.findings_key.json
 
   tags = local.standard_tags
 }
