@@ -110,7 +110,9 @@ docs/                    # adr, assessment matrix, findings — docs-as-code
 ```
 
 Workload accounts never get directories here: they exist only as factory-map entries,
-their infrastructure in their own repos.
+their infrastructure in their own repos. `shared-services` is built by
+[`bootstrap/`](bootstrap/) — it holds the state backend, and the golden AMIs, SSM
+inventory and package mirrors it also owns land with the parts that build them.
 
 ## 📐 Conventions
 

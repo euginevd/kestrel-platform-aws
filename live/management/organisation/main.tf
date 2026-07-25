@@ -56,7 +56,7 @@ resource "aws_organizations_organizational_unit" "top" {
     "Security",       # delegated admin + the log sink live here
     "Infrastructure", # shared fabric: network, shared-services
     "Workloads",      # customer-facing, split Prod / Non-Prod below
-    "Sandbox",        # experimentation — loose policy attaches later
+    "Sandbox",        # loose policy, no network, still logged — detection is inherited
     "Transitional",   # brownfield holding area — detective-only
     "Suspended",      # quarantine — deny-all attaches later
   ])

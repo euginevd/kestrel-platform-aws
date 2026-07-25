@@ -82,12 +82,13 @@ resource "aws_macie2_organization_configuration" "this" {
 
 # --- Security Hub: two layers, not two products ------------------------------
 #
-# The December 2025 Security Hub is the PLANE — it correlates GuardDuty,
-# Inspector, Macie and CSPM signals into exposure findings with a risk
-# score and attack path, so prioritisation stops being a severity sort.
-# CSPM is the LAYER UNDERNEATH, still the normalised feed of standards
-# and control results. Enabling the plane does not retire CSPM; the
-# central configuration policy below is what CSPM runs on.
+# The re-architected Security Hub — released December 2025, referred to
+# throughout as the 2026 Security Hub — is the PLANE: it correlates
+# GuardDuty, Inspector, Macie and CSPM signals into exposure findings
+# with a risk score and attack path, so prioritisation stops being a
+# severity sort. CSPM is the LAYER UNDERNEATH, still the normalised feed
+# of standards and control results. Enabling the plane does not retire
+# CSPM; the central configuration policy below is what CSPM runs on.
 
 resource "aws_securityhub_organization_configuration" "this" {
   # MUST be false under central config — central config and per-account

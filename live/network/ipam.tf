@@ -1,5 +1,10 @@
 # Networking step 3 — IPAM, the address authority beside the fabric.
 #
+# IN `network`, NOT `shared-services` (Accounts decision 5): address
+# allocation and routing are ONE administrative boundary. Whoever owns
+# the routes owns the ranges, because an overlap is precisely the failure
+# the fabric cannot route around after the fact.
+#
 # One allocator for both operating Regions; a pool per zone, so a range
 # names its zone on sight and no two accounts overlap. IPAM ALLOCATES but
 # does not enforce: a hand-carved CIDR still works until Guardrails' SCP
