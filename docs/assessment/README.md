@@ -14,4 +14,4 @@ make one. And the matrix never contains evidence — references only, so
 
 - `matrix.yaml` — the pinned release, posture and control rows
 - `findings/` — one file per finding, in the assessor's format
-- The full pack exports to `s3://kestrel-log-archive/irap/phase-08/`
+- The full pack exports to `s3://kestrel-log-archive/irap/phase-09/`

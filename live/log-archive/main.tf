@@ -1,17 +1,27 @@
-# Accounts step 5 — the Object-Locked sink.
+# Logging & Monitoring step 1 — the Object-Locked sink, the evidence plane.
 #
 # Managed by Security Tooling, sink in Log Archive, queried by Athena, no
 # human access (Accounts decision 2). The split is management versus usage
 # privilege: the account that can read all logs is not the account that
 # runs the tools, and neither is the org root.
 #
+# This is the EVIDENCE plane and it is ours: it must outlive the SOC
+# contract, so the provider's Sentinel (the operations plane) holds a
+# copy at most, never the record (Monitoring decision 1).
+#
 # This bucket carries the evidence convention for the whole series:
 # exports land under s3://kestrel-log-archive/irap/phase-<n>/, each filed
 # against the ISM controls it satisfies.
 
+# Object Lock is only half the integrity story (Monitoring decision 1):
+# an archive encrypted with a key someone can disable is deletable by
+# another name. So the CMK is customer-managed HERE, rotated annually,
+# and its policy separates administration from use — scheduling its
+# deletion is itself an alarm (security-tooling/alarms.tf).
 resource "aws_kms_key" "logs" {
   description             = "SSE-KMS for the org-trail and Config sink"
   enable_key_rotation     = true
+  rotation_period_in_days = 365
   deletion_window_in_days = 30
 
   policy = data.aws_iam_policy_document.logs_key.json
@@ -35,6 +45,27 @@ data "aws_iam_policy_document" "logs_key" {
     principals {
       type        = "AWS"
       identifiers = ["arn:aws:iam::${data.aws_caller_identity.this.account_id}:root"]
+    }
+  }
+
+  # USE, not administration: security-tooling queries the archive through
+  # Athena and so must decrypt, but holds no kms:PutKeyPolicy,
+  # kms:ScheduleKeyDeletion or kms:DisableKey. NOBODY HOLDS BOTH — that
+  # is the whole point of the split (Monitoring decision 1).
+  statement {
+    sid = "SecurityToolingUseOnly"
+
+    actions = [
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:GenerateDataKey*",
+    ]
+
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.security_tooling_account_id}:root"]
     }
   }
 
@@ -208,6 +239,37 @@ data "aws_iam_policy_document" "logs_bucket" {
     }
   }
 
+  # Logging & Monitoring step 4 — the platform-enforced sources. Flow
+  # logs and Resolver query logs are written by the VPC module in every
+  # account (modules/account-baseline/network/), so the writer is the
+  # service, scoped to the org: no account-level toggle exists to turn
+  # them off, and no account outside the org can write here.
+  statement {
+    sid       = "PlatformSourceWrite"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.logs.arn}/*"]
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "delivery.logs.amazonaws.com", # VPC flow logs
+        "route53.amazonaws.com",       # Resolver query logs
+      ]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceOrgID"
+      values   = [local.org_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+
   statement {
     sid     = "DenyInsecureTransport"
     effect  = "Deny"
@@ -233,4 +295,29 @@ data "aws_iam_policy_document" "logs_bucket" {
 resource "aws_s3_bucket_policy" "logs" {
   bucket = aws_s3_bucket.logs.id
   policy = data.aws_iam_policy_document.logs_bucket.json
+}
+
+# --- Notifications out to the connector queues -------------------------------
+
+# Monitoring step 7: the Sentinel connectors read THIS bucket — the
+# record lands once and is read twice, rather than a second pipeline
+# nobody reconciles. The queues are owned by security-tooling; this end
+# only announces that an object arrived.
+#
+# One notification per prefix, not one for the whole bucket: a connector
+# receiving every object in the archive would re-ingest the trail it
+# already gets natively through the Lake.
+resource "aws_s3_bucket_notification" "connectors" {
+  bucket = aws_s3_bucket.logs.id
+
+  dynamic "queue" {
+    for_each = local.connector_notifications
+
+    content {
+      id            = "connector-${queue.key}"
+      queue_arn     = "arn:aws:sqs:ap-southeast-2:${local.security_tooling_account_id}:kestrel-connector-${queue.key}"
+      events        = ["s3:ObjectCreated:*"]
+      filter_prefix = queue.value
+    }
+  }
 }

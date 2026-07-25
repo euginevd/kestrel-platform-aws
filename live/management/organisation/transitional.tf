@@ -1,4 +1,4 @@
-# Accounts step 10 — adopt, never create.
+# Accounts step 7 — adopt, never create.
 #
 # The ~60 brownfield accounts enrol LAST, into a transit OU carrying no
 # policy — watched but not governed, covered by the trail and detective

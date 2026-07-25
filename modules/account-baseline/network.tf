@@ -26,5 +26,6 @@ module "network" {
   netmask_length  = local.tier_netmask[var.network_tier]
   segment         = var.segment
   core_network_id = var.core_network_id
+  logs_bucket_arn = "arn:aws:s3:::${var.logs_bucket_name}"
   tags            = var.tags
 }

@@ -1,11 +1,16 @@
-# Accounts step 6 — Config, aggregated here.
+# Accounts step 5 enabled it; Logging & Monitoring step 3 sets what it
+# records — Config, aggregated here.
 #
 # The recorder + delivery channel run PER ACCOUNT per Region from the
-# factory's account baseline (live/management/accounts/), all delivering
-# to log-archive; this leaf holds the org-wide aggregator. The ordering
-# is forced, not preferred: Config must be recording BEFORE Security Hub
-# CSPM enables (detective.tf), or CSPM's controls silently evaluate
-# nothing — the worst failure mode a detective control has.
+# factory's account baseline (modules/account-baseline/config.tf), all
+# delivering to log-archive; this leaf holds the org-wide aggregator —
+# the thing the coverage query reads to prove every account and Region
+# reports. The two-speed continuous/daily split is set on the recorder
+# there, not here.
+#
+# The ordering is forced, not preferred: Config must be recording BEFORE
+# Security Hub CSPM enables (detective.tf), or CSPM's controls silently
+# evaluate nothing — the worst failure mode a detective control has.
 
 data "aws_iam_policy_document" "config_aggregator_assume" {
   statement {

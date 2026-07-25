@@ -17,15 +17,15 @@ inherited:   aws-irap-2026   # controls evidenced by AWS's own report, listed by
 controls:
   ISM-1988:
     claim:    event logs searchable for 12 months
-    evidence: irap/phase-03/athena-query-battery.json
+    evidence: irap/phase-04/athena-query-battery.json
 
   ISM-0859:
     claim:    event logs retained 7 years
-    evidence: irap/phase-03/log-retention-lifecycle.json # primary; re-run tests both Regions (FIND-012)
+    evidence: irap/phase-04/log-retention-lifecycle.json # primary; re-run tests both Regions (FIND-012)
 
   ISM-0988:
     claim:    a common time source across the estate
-    evidence: irap/phase-03/time-sync-attestation.json
+    evidence: irap/phase-04/time-sync-attestation.json
 
   ISM-1526:
     claim:    changes to the estate travel a reviewed, gated pipeline
@@ -33,15 +33,31 @@ controls:
 
   ISM-1175:
     claim:    privileged access is requested, approved, time-bound and logged
-    evidence: irap/phase-06/elevation-lifecycle-battery.json
+    evidence: irap/phase-07/elevation-lifecycle-battery.json
 
   ISM-1507:
     claim:    privileged users use separate privileged accounts # JIT elevation, not standing
-    evidence: irap/phase-06/standing-privilege-enumeration.json
+    evidence: irap/phase-07/standing-privilege-enumeration.json
 
   ISM-0580:
     claim:    event logging is centralised and protected from modification
-    evidence: irap/phase-03/object-lock-and-bucket-policy-tests.json
+    evidence: irap/phase-04/object-lock-and-bucket-policy-tests.json
+
+  ISM-1906:
+    claim:    security events are analysed in a timely manner # EventBridge by severity, SOC SLA
+    evidence: irap/phase-04/finding-to-acknowledgement-timings.json
+
+  ISM-0459:
+    claim:    archive encryption keys are customer-managed and rotated annually
+    evidence: irap/phase-04/archive-cmk-policy-and-rotation.json # admin/use split, no principal holds both
+
+  ISM-1139:
+    claim:    data in transit uses TLS 1.2+ with ASD-approved algorithms # incl. the Event Hub hop
+    evidence: irap/phase-04/tls-posture-scan.json
+
+  ISM-1690:
+    claim:    critical patches applied within two weeks, 48 hours where exploited # Essential Eight cadence
+    evidence: irap/phase-04/inspector-remediation-windows.json
 
   ISM-1553:
     claim:    application control enforced on managed endpoints

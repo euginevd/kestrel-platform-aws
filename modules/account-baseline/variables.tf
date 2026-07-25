@@ -32,6 +32,24 @@ variable "core_network_id" {
   default     = null
 }
 
+variable "logs_bucket_name" {
+  description = "The Object-Locked sink in log-archive that this account's Config recorder delivers to — name-shaped, because leaves stay independently appliable."
+  type        = string
+  default     = "kestrel-org-cloudtrail-ap-southeast-2"
+}
+
+variable "logs_kms_key_arn" {
+  description = "The SSE-KMS key the sink is encrypted with (alias ARN)."
+  type        = string
+  default     = "arn:aws:kms:ap-southeast-2:223456789012:alias/kestrel-org-logs"
+}
+
+variable "record_global_resource_types" {
+  description = "Record global (IAM) resource types in this Region. True in ap-southeast-2 only — set in both Regions and every IAM record is paid for twice."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "The account's standard tags, stamped on everything the baseline creates."
   type        = map(string)

@@ -13,6 +13,13 @@ resource "aws_athena_workgroup" "logs" {
   configuration {
     enforce_workgroup_configuration = true
 
+    # A spend cap, because an unbounded scan of seven years of logs is a
+    # self-inflicted incident (Monitoring decision 6). Partition
+    # projection above keeps a well-written query small; this is what
+    # stops a badly-written one. 200 GB — a query that needs more is one
+    # worth a conversation before it runs.
+    bytes_scanned_cutoff_per_query = 200 * 1024 * 1024 * 1024
+
     result_configuration {
       # Results are queries about evidence, not evidence — they land in a
       # prefix of the workgroup's own bucket in this account, not the sink.

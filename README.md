@@ -58,12 +58,13 @@ repo path is where its Terraform, ADRs and policy live.
 |------|------|---------------|-----------------------------|
 | 1 | [Organisation](https://arcvault.com.au/in-practice/aws-landing-zone/organisation/) | Management account hardened in one witnessed session — root under PAM, federation to Entra ID. | No code — a console session. Decisions are [`docs/adr/`](docs/adr/) ADR-0001 onwards. |
 | 2 | [Bootstrap](https://arcvault.com.au/in-practice/aws-landing-zone/bootstrap/) | The delivery path — repo with review/policy gates, in-boundary S3 state, OIDC pipelines. | [`bootstrap/`](bootstrap/), [`.github/`](.github/), [`policy/`](policy/), [`accounts.json`](accounts.json) |
-| 3 | [Accounts & Security Foundation](https://arcvault.com.au/in-practice/aws-landing-zone/accounts/) | SRA-shaped OU tree, org CloudTrail, detective services, then ~60 brownfield accounts enrolled. | [`live/management/organisation/`](live/management/organisation/), [`live/log-archive/`](live/log-archive/), [`live/security-tooling/`](live/security-tooling/) |
-| 4 | [Networking](https://arcvault.com.au/in-practice/aws-landing-zone/networking/) | Cloud WAN with a segment per zone, IPAM behind every CIDR, one logged egress per Region. | [`live/network/`](live/network/), [`modules/inspection-vpc/`](modules/inspection-vpc/), [`modules/firewall-rules/`](modules/firewall-rules/) |
-| 5 | [Guardrails](https://arcvault.com.au/in-practice/aws-landing-zone/guardrails/) | Four policy instruments, member root deleted, the data perimeter closed in three directions. | [`live/management/policies/`](live/management/policies/) |
-| 6 | [Identity](https://arcvault.com.au/in-practice/aws-landing-zone/identity/) | Standing privilege removed — JIT elevation via Entra PIM, last long-lived credentials deleted. | [`live/identity/`](live/identity/) |
-| 7 | [Vending](https://arcvault.com.au/in-practice/aws-landing-zone/vending/) | The account factory — one PR vends an account born governed; decommissioning as deliberate. | [`live/management/accounts/`](live/management/accounts/), [`modules/account-factory/`](modules/account-factory/), [`modules/account-baseline/`](modules/account-baseline/) |
-| 8 | [Assessment](https://arcvault.com.au/in-practice/aws-landing-zone/assessment/) | The estate assessed against itself — control-to-evidence matrix on a pinned ISM release. | [`docs/assessment/`](docs/assessment/) |
+| 3 | [Accounts & Security Foundation](https://arcvault.com.au/in-practice/aws-landing-zone/accounts/) | SRA-shaped OU tree, the four remaining core accounts, every org-wide service delegated and enabled once, then ~60 brownfield accounts enrolled. | [`live/management/organisation/`](live/management/organisation/), [`live/log-archive/`](live/log-archive/), [`live/security-tooling/`](live/security-tooling/) |
+| 4 | [Logging & Monitoring](https://arcvault.com.au/in-practice/aws-landing-zone/monitoring/) | Every log the estate emits into the Object-Locked archive — data events, two-speed Config, four watchers, then the OCSF seam to the SOC's Sentinel. | [`live/log-archive/`](live/log-archive/), [`live/security-tooling/`](live/security-tooling/), [`modules/account-baseline/`](modules/account-baseline/) |
+| 5 | [Networking](https://arcvault.com.au/in-practice/aws-landing-zone/networking/) | Cloud WAN with a segment per zone, IPAM behind every CIDR, one logged egress per Region. | [`live/network/`](live/network/), [`modules/inspection-vpc/`](modules/inspection-vpc/), [`modules/firewall-rules/`](modules/firewall-rules/) |
+| 6 | [Guardrails](https://arcvault.com.au/in-practice/aws-landing-zone/guardrails/) | Four policy instruments, member root deleted, the data perimeter closed in three directions. | [`live/management/policies/`](live/management/policies/) |
+| 7 | [Identity](https://arcvault.com.au/in-practice/aws-landing-zone/identity/) | Standing privilege removed — JIT elevation via Entra PIM, last long-lived credentials deleted. | [`live/identity/`](live/identity/) |
+| 8 | [Vending](https://arcvault.com.au/in-practice/aws-landing-zone/vending/) | The account factory — one PR vends an account born governed; decommissioning as deliberate. | [`live/management/accounts/`](live/management/accounts/), [`modules/account-factory/`](modules/account-factory/), [`modules/account-baseline/`](modules/account-baseline/) |
+| 9 | [Assessment](https://arcvault.com.au/in-practice/aws-landing-zone/assessment/) | The estate assessed against itself — control-to-evidence matrix on a pinned ISM release. | [`docs/assessment/`](docs/assessment/) |
 
 A [Reference](https://arcvault.com.au/in-practice/aws-landing-zone/reference/) page
 collects every AWS service the parts touch, the alternative each decision rejected, and
@@ -92,8 +93,8 @@ live/                    # thin root configs — one directory = one state objec
 │   ├── organisation/    #   OU tree, delegation, brownfield enrolment
 │   ├── policies/        #   SCPs, RCPs, declarative + tag policies
 │   └── accounts/        #   the account-factory map
-├── log-archive/         #   the immutable log sink
-├── security-tooling/    #   cloudtrail, config, detection, access-analyzer
+├── log-archive/         #   the immutable log sink + security lake (OCSF, the SOC seam)
+├── security-tooling/    #   cloudtrail, config, detection, findings, pipeline alarms
 ├── network/             #   Cloud WAN core network, IPAM, egress, inspection
 └── identity/            #   permission sets + Entra-group assignments
 modules/                 # reusable, versioned, pinned by git tag
@@ -126,8 +127,9 @@ their infrastructure in their own repos.
 ## 🧰 Tech stack
 
 Terraform ≥ 1.10 · AWS Organizations · IAM Identity Center (federated from Entra ID) ·
-Cloud WAN · Network Firewall · GuardDuty · Security Hub CSPM · AWS Config · CloudTrail ·
-S3 Object Lock · Athena · GitHub Actions with OIDC · Checkov.
+Cloud WAN · Network Firewall · GuardDuty · Security Hub CSPM · Inspector · Macie ·
+Security Lake (OCSF) · AWS Config · CloudTrail · S3 Object Lock · Athena · EventBridge ·
+GitHub Actions with OIDC · Checkov.
 
 ## 🔒 Security
 
