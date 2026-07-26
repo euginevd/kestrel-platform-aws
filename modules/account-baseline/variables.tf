@@ -39,9 +39,14 @@ variable "logs_bucket_name" {
 }
 
 variable "logs_kms_key_arn" {
-  description = "The SSE-KMS key the sink is encrypted with (alias ARN)."
+  description = "The SSE-KMS key the sink is encrypted with. Must be the KEY ARN, not the alias ARN — a Config delivery channel rejects an alias, and the failure surfaces as delivery that never starts rather than an apply error."
   type        = string
-  default     = "arn:aws:kms:ap-southeast-2:223456789012:alias/kestrel-org-logs"
+  default     = "arn:aws:kms:ap-southeast-2:223456789012:key/kestrel-org-logs-key-id"
+
+  validation {
+    condition     = can(regex(":key/", var.logs_kms_key_arn))
+    error_message = "logs_kms_key_arn must be a key ARN (:key/...), not an alias ARN."
+  }
 }
 
 variable "record_global_resource_types" {

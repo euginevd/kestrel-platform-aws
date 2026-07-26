@@ -4,6 +4,12 @@
 # the org-wide aggregator lives in live/security-tooling/config.tf. Both
 # deliver to the same sink in log-archive.
 #
+# PER REGION means this module is instantiated once per operating Region
+# with a provider aliased to each, and ONLY the ap-southeast-2 call
+# passes record_global_resource_types = true. Set it in both and every
+# IAM configuration item is recorded — and billed — twice, which is a
+# cost bug that looks exactly like working coverage.
+#
 # TWO SPEEDS, chosen per resource type (Monitoring decision 3): Config
 # pricing punishes churn on high-turnover resources, and a daily snapshot
 # of an autoscaling group still answers the assessor's "what did it look

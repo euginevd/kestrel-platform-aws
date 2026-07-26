@@ -69,14 +69,24 @@ data "aws_iam_policy_document" "logs_key" {
     }
   }
 
+  # Every service the BUCKET POLICY admits as a writer must also be able
+  # to encrypt, or delivery fails silently — the bucket accepts the
+  # principal and KMS refuses the key, which reads as a source that
+  # simply never wrote. Keep this list in step with the writers in
+  # data.aws_iam_policy_document.logs_bucket below.
   statement {
-    sid       = "TrailAndConfigEncrypt"
+    sid       = "LogSourceEncrypt"
     actions   = ["kms:GenerateDataKey*", "kms:DescribeKey"]
     resources = ["*"]
 
     principals {
-      type        = "Service"
-      identifiers = ["cloudtrail.amazonaws.com", "config.amazonaws.com"]
+      type = "Service"
+      identifiers = [
+        "cloudtrail.amazonaws.com",
+        "config.amazonaws.com",
+        "delivery.logs.amazonaws.com", # VPC flow logs (Monitoring step 4)
+        "route53.amazonaws.com",       # Resolver query logs (Monitoring step 4)
+      ]
     }
 
     condition {
@@ -260,6 +270,36 @@ data "aws_iam_policy_document" "logs_bucket" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceOrgID"
+      values   = [local.org_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+  }
+
+  # Session recordings are the one platform source written by an IAM
+  # PRINCIPAL rather than a service: Session Manager uploads the
+  # transcript as the instance's own role in the member account
+  # (modules/account-baseline/sessions.tf). PrincipalOrgID is what keeps
+  # that from meaning "any role anywhere", and the prefix confines it to
+  # the one path — a role that can write session-recordings/ still cannot
+  # touch the trail's objects.
+  statement {
+    sid       = "SessionRecordingWrite"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.logs.arn}/session-recordings/*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:PrincipalOrgID"
       values   = [local.org_id]
     }
 
